@@ -21,7 +21,7 @@ instance = conf['instance']
 acc = retrieve(username, instance)
 head = {'Authorization':'Bearer '+acc}
 uri_user = instance+'/api/v1/streaming/user'
-r_user = requests.get(uri_user, header=head, stream=True)
+r_user = requests.get(uri_user, headers=head, stream=True)
 
 def mention_to(content, reply_to_id, *args):
     mention = dict()
@@ -31,7 +31,7 @@ def mention_to(content, reply_to_id, *args):
     if 'image' in args:
         u = upload_media('/home/canor/scripts/birthday_bot/image/human.jpeg')
         mention['media_ids[]']=u
-    requests.post(instance+'/api/v1/statuses',header=head,data=hd)
+    requests.post(instance+'/api/v1/statuses',headers=head,data=hd)
 
 def upload_media(media_file):
     with open(media_file, 'rb') as media:
