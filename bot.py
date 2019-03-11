@@ -10,16 +10,13 @@ from konlpy.tag import Kkma
 
 kkma = Kkma()
 mode = 0
-base = os.path.dirname(os.path.abspath(__file__))
-with open(base+'/cred.json') as fr:
-    cred = json.load(fr)
+base = os.path.dirname(os.path.abspath(__file__))+'/'
 
-with open('config.json') as f:
-    cred = json.load(f)
+with open(base+'config.json') as f:
+    conf = json.load(f)
 
-username = cred['id']
-password = cred['pw']
-instance = cred['instance']
+username = conf['id']
+instance = conf['instance']
 
 acc = retrieve(username, instance)
 head = {'Authorization':'Bearer '+acc}
@@ -58,10 +55,35 @@ for l in r_user.iter_lines():
     elif dec == ':thump':
         mode = 0
         continue
+    if mode:
+        try:
+            newdec = json.loads(dec.replace('data: ', ''))
+            type = newdec['type']
+            if type == 'follow':
+                new_follower = newdec['account']['id']
+                followback(new_follower)
+                # send mention
+            elif type == 'mention':
+                # analyze
+                reply_to_id = newdec
+        except:
+            continue
     try:
         newdec = json.loads(dec.replace('data: ',''))
         if newdec['account']['bot']:
             continue
+        if mode:
+            type = newdec['type']
+            if type == 'follow':
+                new_follower = newdec['account']['id']
+                followback(new_follower)
+                #send into mention
+            elif type == 'mention':
+                # analyze
+                reply_to_id = newdec['status']['id']
+                reply_to_account = newdec['account']['acct']
+                status = '@'+reply_to_account+' 아직 이 기능은 준비가 안 됐어요. 나중에 다시 테스트해주세요.'
+                mention_to(status,reply_to_id)
         try:
             type = newdec['type']
         except:
@@ -76,4 +98,7 @@ for l in r_user.iter_lines():
             status = '@'+reply_to_account+' 좋은 꿈 꾸세요'
             mention_to(status, reply_to_id)
     except:
+        print('error occurred.')
+        with open('error id', 'a') as fa:
+            fa.write(str(newdec['status']['id'])+'\n')
         pass
