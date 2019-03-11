@@ -68,37 +68,38 @@ for l in r_user.iter_lines():
                 reply_to_id = newdec
         except:
             continue
-    try:
-        newdec = json.loads(dec.replace('data: ',''))
-        if newdec['account']['bot']:
-            continue
-        if mode:
-            type = newdec['type']
-            if type == 'follow':
-                new_follower = newdec['account']['id']
-                followback(new_follower)
-                #send into mention
-            elif type == 'mention':
-                # analyze
+    else:
+        try:
+            newdec = json.loads(dec.replace('data: ',''))
+            if newdec['account']['bot']:
+                continue
+            if mode:
+                type = newdec['type']
+                if type == 'follow':
+                    new_follower = newdec['account']['id']
+                    followback(new_follower)
+                    #send into mention
+                elif type == 'mention':
+                    # analyze
+                    reply_to_id = newdec['status']['id']
+                    reply_to_account = newdec['account']['acct']
+                    status = '@'+reply_to_account+' 아직 이 기능은 준비가 안 됐어요. 나중에 다시 테스트해주세요.'
+                    mention_to(status,reply_to_id)
+            try:
+                type = newdec['type']
+            except:
+                pass
+            if ('자','VV') in kkma.pos(newdec['status']):
                 reply_to_id = newdec['status']['id']
                 reply_to_account = newdec['account']['acct']
-                status = '@'+reply_to_account+' 아직 이 기능은 준비가 안 됐어요. 나중에 다시 테스트해주세요.'
-                mention_to(status,reply_to_id)
-        try:
-            type = newdec['type']
+                if newdec['account']['display_name']:
+                    username = newdec['account']['display_name']
+                else:
+                    username = newdec['account']['username']
+                status = '@'+reply_to_account+' 좋은 꿈 꾸세요'
+                mention_to(status, reply_to_id)
         except:
+            print('error occurred.')
+            with open('error id', 'a') as fa:
+                fa.write(str(newdec['status']['id'])+'\n')
             pass
-        if ('자','VV') in kkma.pos(newdec['status']):
-            reply_to_id = newdec['status']['id']
-            reply_to_account = newdec['account']['acct']
-            if newdec['account']['display_name']:
-                username = newdec['account']['display_name']
-            else:
-                username = newdec['account']['username']
-            status = '@'+reply_to_account+' 좋은 꿈 꾸세요'
-            mention_to(status, reply_to_id)
-    except:
-        print('error occurred.')
-        with open('error id', 'a') as fa:
-            fa.write(str(newdec['status']['id'])+'\n')
-        pass
