@@ -7,6 +7,7 @@ import os
 from pytz import timezone
 from credential import retrieve
 from konlpy.tag import Kkma
+from bs4 import BeautifulSoup as bs
 
 kkma = Kkma()
 mode = 0
@@ -22,16 +23,17 @@ acc = retrieve(username, instance)
 head = {'Authorization':'Bearer '+acc}
 uri_user = instance+'/api/v1/streaming/user'
 r_user = requests.get(uri_user, headers=head, stream=True)
+print('connected to stream')
 
 def mention_to(content, reply_to_id, *args):
     mention = dict()
-    mention['content'] = content
+    mention['status'] = content
     mention['reply_to_id'] = reply_to_id
     mention['visibility'] = 'unlisted'
     if 'image' in args:
         u = upload_media('/home/canor/scripts/birthday_bot/image/human.jpeg')
         mention['media_ids[]']=u
-    requests.post(instance+'/api/v1/statuses',headers=head,data=hd)
+    requests.post(instance+'/api/v1/statuses',headers=head,data=mention)
 
 def upload_media(media_file):
     with open(media_file, 'rb') as media:
@@ -44,9 +46,11 @@ def upload_media(media_file):
         return 0
 
 def followback(user_id):
+    print('requesting followback')
     requests.post(instance+'/api/v1/accounts/'+user_id+'/follow',headers=head)
 
 for l in r_user.iter_lines():
+    is_not_mention = 1
     dec = l.decode('utf-8')
     if dec == 'event: notification':
         mode = 1
@@ -55,42 +59,38 @@ for l in r_user.iter_lines():
     elif dec == ':thump':
         mode = 0
         continue
-    if mode:
-        try:
-            newdec = json.loads(dec.replace('data: ', ''))
+    try:
+        newdec = json.loads(dec.replace('data: ',''))
+        for i in newdec:
+            print(str(i)+': '+str(newdec[i]))
+        print('------------------------------')
+        if newdec['account']['bot']:
+            continue
+        if mode:
             type = newdec['type']
             if type == 'follow':
                 new_follower = newdec['account']['id']
                 followback(new_follower)
-                # send mention
+                #send into mention
             elif type == 'mention':
                 # analyze
-                reply_to_id = newdec
-        except:
-            continue
-    else:
-        try:
-            newdec = json.loads(dec.replace('data: ',''))
-            if newdec['account']['bot']:
-                continue
-            if mode:
-                type = newdec['type']
-                if type == 'follow':
-                    new_follower = newdec['account']['id']
-                    followback(new_follower)
-                    #send into mention
-                elif type == 'mention':
-                    # analyze
-                    reply_to_id = newdec['status']['id']
-                    reply_to_account = newdec['account']['acct']
-                    status = '@'+reply_to_account+' 아직 이 기능은 준비가 안 됐어요. 나중에 다시 테스트해주세요.'
-                    mention_to(status,reply_to_id)
+                print('mention coming in')
+                reply_to_id = newdec['id']
+                reply_to_account = newdec['account']['acct']
+                status = '@'+reply_to_account+' 아직 이 기능은 준비가 안 됐어요. 나중에 다시 테스트해주세요.'
+                mention_to(status,reply_to_id)
+                is_not_mention = 0
             try:
                 type = newdec['type']
             except:
                 pass
-            if ('자','VV') in kkma.pos(newdec['status']):
-                reply_to_id = newdec['status']['id']
+        else:
+            status = bs(str(newdec['content']),'html.parser').get_text()
+            if '자 ' in status:
+                continue
+            if ('자','VV') in kkma.pos(status) and is_not_mention:
+                print(status)
+                reply_to_id = newdec['id']
                 reply_to_account = newdec['account']['acct']
                 if newdec['account']['display_name']:
                     username = newdec['account']['display_name']
@@ -98,8 +98,5 @@ for l in r_user.iter_lines():
                     username = newdec['account']['username']
                 status = '@'+reply_to_account+' 좋은 꿈 꾸세요'
                 mention_to(status, reply_to_id)
-        except:
-            print('error occurred.')
-            with open('error id', 'a') as fa:
-                fa.write(str(newdec['status']['id'])+'\n')
-            pass
+    except:
+        print('error occurred.')
